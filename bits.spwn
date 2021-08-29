@@ -1,0 +1,205 @@
+type @bitstring
+type @bitwise
+
+get_repr_value = (val: @number) {
+    return val as @string
+}
+
+dec_to_bin = (inp: @number) {
+    let output = []
+    let current_value = inp
+    while current_value > 0 {
+        output.push(get_repr_value(current_value % 2))
+        current_value /%= 2
+    }
+    return "".join(output.reverse())
+}
+
+convert_to_bitstring = (value) {
+    if value.type == @string {
+        return @bitstring::{value}
+    }
+    else if value.type == @number {
+        return dec_to_bin(value)
+    }
+    else if value.type == @bool {
+        return value as @number
+    }
+    else {
+        return value as @bitstring
+    }
+}
+
+pad_with_zeroes = (item1: @bitstring, item2: @bitstring) {
+    max_length = $.max(item1.value.length, item2.value.length)
+    return [
+        "0" * (max_length-item1.value.length) + item1.value,
+        "0" * (max_length-item2.value.length) + item2.value
+    ]
+}
+
+impl @bitwise {
+    convert: (value) {
+        let current_value = value
+        let last_iteration = @NULL
+        while current_value.type != @bitstring {
+            current_value = convert_to_bitstring(current_value)
+            if current_value.type == last_iteration {
+                break
+            }
+            last_iteration = current_value.type
+        }
+        return current_value
+    },
+    and: (op1, op2) {
+        let item1 = @bitwise::convert(op1)
+        let item2 = @bitwise::convert(op2)
+        result = pad_with_zeroes(item1, item2)
+        item1 = result[0]
+        item2 = result[1]
+        let output = ""
+        for i in ..item1.length {
+            if item1[i] == "1" && item2[i] == "1" { output += "1" }
+            else { output += "0" }
+        }
+        return @bitstring::{value: output}
+    },
+    or: (op1, op2) {
+        let item1 = @bitwise::convert(op1)
+        let item2 = @bitwise::convert(op2)
+        result = pad_with_zeroes(item1, item2)
+        item1 = result[0]
+        item2 = result[1]
+        let output = ""
+        for i in ..item1.length {
+            if item1[i] == "1" || item2[i] == "1" { output += "1" }
+            else { output += "0" }
+        }
+        return @bitstring::{value: output}
+    },
+    xor: (op1, op2) {
+        let item1 = @bitwise::convert(op1)
+        let item2 = @bitwise::convert(op2)
+        result = pad_with_zeroes(item1, item2)
+        item1 = result[0]
+        item2 = result[1]
+        let output = ""
+        for i in ..item1.length {
+            if (item1[i] == "1" && item2[i] == "0") || (item1[i] == "0" && item2[i] == "1") { output += "1" }
+            else { output += "0" }
+        }
+        return @bitstring::{value: output}
+    },
+    not: (op1) {
+        let item1 = @bitwise::convert(op1)
+        let output = ""
+        for i in ..item1.value.length {
+            if item1.value[i] == "1" { output += "0" }
+            else { output += "1" }
+        }
+        return @bitstring::{value: output}
+    }
+}
+
+to_arr = (str: @string) {
+    let output = []
+    for char in str {
+        output.push(char)
+    }
+    return output
+}
+
+impl @bitwise {
+    lshift_once: (op1) {
+        let item1 = @bitwise::convert(op1)
+        let output = ""
+        for i in 1..item1.value.length {
+            output += item1.value[i]
+        }
+        return @bitstring::{value: output+"0"}
+    },
+    lshift: (op1, amount: @number = 1) {
+        let current = @bitwise::convert(op1)
+        for i in ..amount {
+            current = @bitwise::lshift_once(current)
+        }
+        return current
+    },
+    rshift_once: (op1) {
+        let item1 = @bitwise::convert(op1)
+        let output = ""
+        for i in 0..item1.value.length-1 {
+            output += item1.value[i]
+        }
+        return @bitstring::{value: "0"+output}
+    },
+    rshift: (op1, amount: @number = 1) {
+        let current = @bitwise::convert(op1)
+        for i in ..amount {
+            current = @bitwise::rshift_once(current)
+        }
+        return current
+    },
+    lrotate_once: (op1) {
+        let item1 = @bitwise::convert(op1)
+        let modded = "".join(to_arr(@bitwise::lshift_once(item1).value)[:item1.value.length-1])
+        return @bitstring::{value: modded + item1.value[0]}
+    },
+    lrotate: (op1, amount: @number = 1) {
+        let current = @bitwise::convert(op1)
+        for i in ..amount {
+            current = @bitwise::lrotate_once(current)
+        }
+        return current
+    },
+    rrotate_once: (op1) {
+        let item1 = @bitwise::convert(op1)
+        let modded = "".join(to_arr(@bitwise::rshift_once(item1).value)[1:])
+        return @bitstring::{value: item1.value[item1.value.length-1] + modded}
+    },
+    rrotate: (op1, amount: @number = 1) {
+        let current = @bitwise::convert(op1)
+        for i in ..amount {
+            current = @bitwise::rrotate_once(current)
+        }
+        return current
+    }
+}
+
+impl @bitstring {
+    new: (value) {
+        return @bitwise::convert(value)
+    }
+}
+
+impl @bitstring {
+    and: (self, other) {
+        return @bitwise::and(self, other)
+    },
+    or: (self, other) {
+        return @bitwise::or(self, other)
+    },
+    xor: (self, other) {
+        return @bitwise::xor(self, other)
+    },
+    not: (self) {
+        return @bitwise::not(self)
+    }
+}
+
+impl @bitstring {
+    lshift: (self, amount: @number=1) {
+        return @bitwise::lshift(self, amount)
+    },
+    rshift: (self, amount: @number=1) {
+        return @bitwise::rshift(self, amount)
+    },
+    lrotate: (self, amount: @number=1) {
+        return @bitwise::lrotate(self, amount)
+    },
+    rrotate: (self, amount: @number=1) {
+        return @bitwise::rrotate(self, amount)
+    }
+}
+
+return {bitstring: @bitstring, bitwise: @bitwise}
