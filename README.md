@@ -8,9 +8,9 @@ bits includes 2 types: `@bitwise` and `@bitstring`.
 
 The `@bitwise` type is a container for all operations that can be applied to binary strings, as well as a function to 'coerce' different data types into a bit string.
 
-# `bitstring`
+# `@bitstring`
 
-The `bitstring` type is used to represent a series of bits. The type also has extra methods attached to it that do the same thing as `@bitwise::[chosen method]` with `self` passed in as the first argument. E.g: `@bitstring::new("100").xor("010")`.
+The `@bitstring` type is used to represent a series of bits. The type also has extra methods attached to it that do the same thing as `@bitwise::[chosen method]` with `self` passed in as the first argument. E.g: `@bitstring::new("100").xor("010")`.
 
 # Argument typing
 
